@@ -173,3 +173,12 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 .DS_Store
+result.png
+result1.png
+result2.png
+result3.png
+
+.vscode/
+src/temp/
+src/Anything-v3-0-better-vae/
+src/convert_original_stable_diffusion_to_diffusers.py
