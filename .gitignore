@@ -178,5 +178,6 @@ cython_debug/
 src/temp/
 src/Models/
 src/results/
+src/results-new/
 src/AI/
 tmp/
