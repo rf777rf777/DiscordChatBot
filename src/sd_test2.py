@@ -2,73 +2,22 @@ import os
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
 import random
 from diffusers import StableDiffusionPipeline, AutoencoderKL
-from diffusers import DPMSolverMultistepScheduler, DDIMScheduler
-from diffusers import PNDMScheduler, LMSDiscreteScheduler
-from diffusers import EulerDiscreteScheduler, EulerAncestralDiscreteScheduler
-from diffusers import UniPCMultistepScheduler
+from core.config import settings
 
 import torch
 from PIL import Image
 import gc
 
-_samplers = {
-    "ddim": {  # DDIM (Denoising Diffusion Implicit Models)
-        "cls": DDIMScheduler,
-        "kwargs": {}
-    },
-    "pndm": {  # PNDM (Pseudo Numerical Methods for Diffusion Models)
-        "cls": PNDMScheduler,
-        "kwargs": {}
-    },
-    "lms": {  # LMS (Laplacian Pyramid Sampling)
-        "cls": LMSDiscreteScheduler,
-        "kwargs": {}
-    },
-    "euler": {  # Euler
-        "cls": EulerDiscreteScheduler,
-        "kwargs": {}
-    },
-    "euler_a": {  # Euler A (Ancestral)
-        "cls": EulerAncestralDiscreteScheduler,
-        "kwargs": {}
-    },
-    "unipc": {  # UniPC (Unified Predictor-Corrector)
-        "cls": UniPCMultistepScheduler,
-        "kwargs": {}
-    },
-    "dpmpp_2m": {  # DPM++ 2M
-        "cls": DPMSolverMultistepScheduler,
-        "kwargs": {
-            "use_karras_sigmas": False,
-            "algorithm_type": "dpmsolver++"
-        }
-    },
-    "dpmpp_2m_karras": {  # DPM++ 2M Karras
-        "cls": DPMSolverMultistepScheduler,
-        "kwargs": {
-            "use_karras_sigmas": True,
-            "algorithm_type": "dpmsolver++"
-        }
-    },
-    "dpmpp_2m_sde": {  # DPM++ 2M SDE Karras
-        "cls": DPMSolverMultistepScheduler,
-        "kwargs": {
-            "use_karras_sigmas": True,
-            "algorithm_type": "dpmsolver++_sde"
-        }
-    },
-}
-
-target_sampler_name = "dpmpp_2m"
+target_sampler_name = "euler_a"
 
 def get_scheduler_factory(sampler_name: str):
     sampler_name = sampler_name.lower()
-    sampler_info = _samplers.get(sampler_name)
+    sampler_info = settings.SD_SAMPLERS.get(sampler_name)
 
     if not sampler_info:
         raise ValueError(
             f"未知的採樣器 '{sampler_name}'。\n"
-            f"可用選項：{', '.join(_samplers.keys())}"
+            f"可用選項：{', '.join(settings.SD_SAMPLERS.keys())}"
         )
 
     SchedulerCls = sampler_info["cls"]
@@ -81,13 +30,15 @@ def get_scheduler_factory(sampler_name: str):
 #model_dir = "DiscordChatBot/src/Models/anypastelAnythingV45_anypastelAnythingV45"  # 你的主模型資料夾（已轉成 diffusers 格式）
 #model_dir = "DiscordChatBot/src/Models/meinaunreal_v5"
 #model_dir = "DiscordChatBot/src/Models/meinamix_v12Final"
-#model_dir = "DiscordChatBot/src/Models/hadrianDelice_deliceV20"
 #------------------------------------------------------------------#
 #steps: 40, no need vae
-#model_dir = "src/Models/SD/BaseModels/qchanAnimeMix_v40" 
+#model_dir = "src/Models/SD/BaseModels/hadrianDelice_deliceV20"
+#------------------------------------------------------------------#
+#steps: 40, no need vae
+model_dir = "src/Models/SD/BaseModels/qchanAnimeMix_v40" 
 #------------------------------------------------------------------#
 #steps: 20, need vae: ClearVAE_V2
-model_dir = "src/Models/SD/BaseModels/malkmilfmix_v20"
+#model_dir = "src/Models/SD/BaseModels/malkmilfmix_v20"
 #------------------------------------------------------------------#
 #vae_path = "DiscordChatBot/src/Models/converted-orangemixvaeReupload_v10"  # VAE 模型（需要轉換格式）
 #vae_path = "src/meinaunreal_v5/kl-f8-anime2.safetensors"  # VAE 模型
@@ -132,9 +83,12 @@ for path, trigger_word in embedding_dirs:
 pipe.enable_attention_slicing()
 #print(pipe.tokenizer.added_tokens_encoder)
 
-lora_weights = { "animetarotV51": 1 }
+lora_weights = { "animetarotV51": 1 , "CivChan": 1}
 pipe.load_lora_weights("src/Models/SD/Loras/animetarotV51.safetensors", 
                         adapter_name="animetarotV51")
+#CivChan, purple eyes, pink hair
+pipe.load_lora_weights("src/Models/SD/Loras/CivChan.safetensors", 
+                        adapter_name="CivChan")
 #pipe.set_adapters("animetarotV51", scales) 
 
 pipe.set_adapters(list(lora_weights.keys()), list(lora_weights.values()))
@@ -147,24 +101,29 @@ pipe.set_adapters(list(lora_weights.keys()), list(lora_weights.values()))
 #positive_prompt = "(((masterpiece))),(((bestquality))),1girl, ponytail, white hair, purple eyes, t-shirt, skirt,white thighhighs, flower, petals, light smile,medium breasts, collarbone, depth of field, petals, (illustration:1.1), landscape, background, abstract, mountainous horizon, cloud, sun,"
 #positive_prompt = "1girl, renaissance art stylized by Pieter Aertsen, Nurturing, from inside a Bayou, autumn cityscape and Binary star in background, Fall, Anime screencap, Confused, Dramatic spotlight, 800mm lens, surreal design, emotional, surrealism"
 #positive_prompt = "1girl, (designed by Junji Ito:0.7) and Moyoco Anno, hip level shot of a Burning , at Sunset, Masterpiece, Depressing, Ambient lighting, Saturated, 'I'm a barbie girl, in a barbie world.', trending on CGSociety, sad"
-#positive_prompt = "1girl, colorful art stylized by Jim Dine and Maynard Dixon, black platform_footwear, pop art, attractive, landscape of a (The Land of Oz:1.2) , Dramatic, crowded lake, Stars in the sky, Ultra Real, Metalcore, 800mm lens, stockings"
+positive_prompt = "1girl, colorful art stylized by Jim Dine and Maynard Dixon, black platform_footwear, pop art, attractive, landscape of a (The Land of Oz:1.2) , Dramatic, crowded lake, Stars in the sky, Ultra Real, Metalcore, 800mm lens, white stockings, CivChan, purple eyes, pink hair"
+#positive_prompt = "masterpiece,best quality,Mechanical prosthetics,cyberpunk,science and technology,human reconstruction,advanced,mechanical promotion,bone remodeling,{body reconstruction},white cathedral (very clean and bright) - many transparent glass windows,white long hair,white stockings,white gloves,messy hair,hair flowing in the wind,high details,extremely delicate and beautiful girl,{{feathers}},small chest,glittering,Solo,white dove,beautiful detail sky,beautiful detail eyes,skirt - gem necklace - gem pendant,bare shoulder,room full of blue crystals (very much),upper body,<lora:animetarotV51:1>,"
 
-positive_prompt = """
-highly insanely detailed, masterpiece, top quality, best quality, highres, 4k, 8k, RAW photo, (very aesthetic, beautiful and aesthetic), 
-__lazy-wildcards/subject/style-book/tarot_card/prompts__, 
-{0.3::((Ancient Egypt theme, ancient egyptian theme)), ancient egyptian symbol, ancient egyptian hieroglyphic|}, 
-<lora:animeTarotCardArtStyleLora_v31:0.8>, 
-(1girl:1.3), 
-1other, stockings,
-{__lazy-wildcards/dataset/costume__|}, 
-{0.3::(__lazy-wildcards/subject/costume-ethnicity-body-skin-tone/dark-skinned/prompts__:1.1)|}, 
-{__lazy-wildcards/prompts/hair__|}, 
-{0.8::(__lazy-wildcards/subject/costume-ethnicity-breasts/*/prompts__)|}, 
-{0.3::__lazy-wildcards/subject/costume-ethnicity-body-skin/skindentation/prompts__|}, 
-__lazy-wildcards/dataset/background__, 
-{0.2::__lazy-wildcards/utils/scenery__|}, 
-{0.1::__lazy-wildcards/subject/moment/random/prompts__|}âââ
-"""
+# positive_prompt = """
+# highly insanely detailed, masterpiece, top quality, best quality, highres, 4k, 8k, RAW photo, (very aesthetic, beautiful and aesthetic), 
+# __lazy-wildcards/subject/style-book/tarot_card/prompts__, 
+# {0.3::((Ancient Egypt theme, ancient egyptian theme)), ancient egyptian symbol, ancient egyptian hieroglyphic|}, 
+# <lora:animeTarotCardArtStyleLora_v31:0.8>, 
+# (1girl:1.3), 
+# 1other, stockings,
+# {__lazy-wildcards/dataset/costume__|}, 
+# {0.3::(__lazy-wildcards/subject/costume-ethnicity-body-skin-tone/dark-skinned/prompts__:1.1)|}, 
+# {__lazy-wildcards/prompts/hair__|}, 
+# {0.8::(__lazy-wildcards/subject/costume-ethnicity-breasts/*/prompts__)|}, 
+# {0.3::__lazy-wildcards/subject/costume-ethnicity-body-skin/skindentation/prompts__|}, 
+# __lazy-wildcards/dataset/background__, 
+# {0.2::__lazy-wildcards/utils/scenery__|}, 
+# {0.1::__lazy-wildcards/subject/moment/random/prompts__|}âââ
+# """
+
+# positive_prompt = """
+# ,, ,, (slim,thin,skinny), masterpiece,4k, best quality,top quality, official art,highest detailed,colorful,distinct_image,, Fuchsia hair,Hairclips,single hair bun,Light Green eyes,pale skin,track suit,wolf ears,(mechanical arms, mechanical legs),medium breasts,jungle,rainforest,ruins,hyper,
+# """
 
 # positive_prompt = """
 # highly insanely detailed, masterpiece, top quality, best quality, highres, stockings, 4k, 8k, RAW photo, (very aesthetic, beautiful and aesthetic), __lazy-wildcards/subject/style-book/tarot_card/prompts__, {0.3::((Ancient Egypt theme, ancient egyptian theme)), ancient egyptian symbol, ancient egyptian hieroglyphic|}, <lora:animeTarotCardArtStyleLora_v31:1>, (1girl:1.3), 1other, {__lazy-wildcards/dataset/costume__|}, {0.3::(__lazy-wildcards/subject/costume-ethnicity-body-skin-tone/dark-skinned/prompts__:1.1)|}, {__lazy-wildcards/prompts/hair__|}, {0.8::(__lazy-wildcards/subject/costume-ethnicity-breasts/*/prompts__)|}, {0.3::__lazy-wildcards/subject/costume-ethnicity-body-skin/skindentation/prompts__|}, __lazy-wildcards/dataset/background__, {0.2::__lazy-wildcards/utils/scenery__|}, {0.1::__lazy-wildcards/subject/moment/random/prompts__|}âââ
@@ -174,6 +133,7 @@ __lazy-wildcards/dataset/background__,
 negative_prompt = "easynegative, badhandv4, watermark"
 
 seed =  random.randint(0, 2**32 - 1)
+#seed = 778722581497242
 #seed = 982613921
 #seed = 799960941
 #seed = 982613921
@@ -188,7 +148,7 @@ num_images = 1
 #設定隨機種子
 generator = [torch.manual_seed(seed + i) for i in range(num_images)]
 guidance_scale = 7
-steps = 20
+steps = 40
 width = 576
 height = 1024
 
