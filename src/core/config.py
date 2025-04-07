@@ -6,12 +6,12 @@ from diffusers import UniPCMultistepScheduler,DPMSolverSDEScheduler
 
 class Settings:
     #API基本資料設定
-    PROJECT_NAME_zh_TW: str = "影像生成"
-    PROJECT_NAME_EN_US: str = "Image Creation"
+    PROJECT_NAME_zh_TW: str = "隨機塔羅"
+    PROJECT_NAME_EN_US: str = "Random Tarot"
     VERSION: str = "1.0.0"
 
     #router設定
-    ROUTER_NAME_ImageCreation, ROUTER_Description_ImageCreation = ('Image', 'Image Creation')
+    ROUTER_NAME_SDImage, ROUTER_Description_SDImage = ('SDImage', 'Stable Diffusion Image')
 
     #Stable Diffusion Samplers
     SD_SAMPLERS = {
