@@ -83,12 +83,19 @@ for path, trigger_word in embedding_dirs:
 pipe.enable_attention_slicing()
 #print(pipe.tokenizer.added_tokens_encoder)
 
-lora_weights = { "animetarotV51": 1 , "CivChan": 1}
+lora_weights = { "animetarotV51": 0.8 , "hyouka_offset": 0.2}
 pipe.load_lora_weights("src/Models/SD/Loras/animetarotV51.safetensors", 
                         adapter_name="animetarotV51")
-#CivChan, purple eyes, pink hair
-pipe.load_lora_weights("src/Models/SD/Loras/CivChan.safetensors", 
-                        adapter_name="CivChan")
+#CivChan, purple eyes, pink hair (僅適用於XL模型)
+#pipe.load_lora_weights("src/Models/SD/Loras/CivChan.safetensors", 
+#                        adapter_name="CivChan")
+
+#hyouka(僅適用於XL模型)
+# pipe.load_lora_weights("src/Models/SD/Loras/eru01-e10.safetensors",
+#                         adapter_name="eru01-e10")
+
+pipe.load_lora_weights("src/Models/SD/Loras/hyouka_offset.safetensors",
+                         adapter_name="hyouka_offset")
 #pipe.set_adapters("animetarotV51", scales) 
 
 pipe.set_adapters(list(lora_weights.keys()), list(lora_weights.values()))
@@ -96,12 +103,12 @@ pipe.set_adapters(list(lora_weights.keys()), list(lora_weights.values()))
 #positive_prompt = "masterpiece, best quality, 1girl, solo, light smile, fire, red theme, alternate costume, <lora:animetarotV51:1>"
 #positive_prompt = "(masterpiece, best quality), 1girl, solo, long_hair, from top, light smile, panorama, perspective, looking_at_viewer, bangs, skirt, shirt, pink hair, colored inner hair, long_sleeves, bow, ribbon, twintails, hair_bow, heart, pantyhose, frills, shoes, choker, blunt_bangs, black_skirt, pink_eyes, frilled_skirt, pink_bow, platform_footwear, pink_theme, jirai_kei, full body, night, street, skyscraper, neon trim, panorama, perspective, starry sky, pink background, dark, shadow"
 # positive_prompt = "(masterpiece, best quality),1girl,adjusting clothes,adjusting headwear,basket,blush,bow,bowtie,breasts,brown eyes,brown hair,cloak,cloud,cloudy sky,crescent moon,dress,fantasy,flower,full body,glowing,glowing flower,hat,holding,holding staff,light particles,lily pad,long hair,looking at viewer,moon,moonlight,mountain,mountainous horizon,night,outdoors,parted lips,pointy ears,pond,sky,small breasts,staff,star (sky),starry sky,very long hair,wading,water lily flower,wicker basket,wind,witch,witch hat"
-#positive_prompt = "(masterpiece, best quality), 1girl, solo, long_hair, looking_at_viewer, white hair, red eyes, smile, bangs, flared skirt, pantyhose, shirt, long_sleeves, hat, bow, holding, closed_mouth, flower, frills, hair_flower, petals, bouquet, holding_flower, center_frills, bonnet, holding_bouquet, floral background, flower field, multicolored background, colorful, petals, depth of field, flower field"
-#positive_prompt = "(((masterpiece))),(((bestquality))),((ultra-detailed)),(illustration),((anextremelydelicateandbeautiful)),dynamicangle,floating,(beautifuldetailedeyes),(detailedlight) (1girl), solo, floating_hair,glowingeyes,green hair,greeneyes, twintails, halterdress, <lora:atdanStyleLora_lk:0.6>, atdan, green background"
+#positive_prompt = "(masterpiece, best quality), hyouka, chitanda eru, 1girl, solo, long_hair, looking_at_viewer, white hair, red eyes, smile, bangs, flared skirt, pantyhose, shirt, long_sleeves, hat, bow, holding, closed_mouth, flower, frills, hair_flower, petals, bouquet, holding_flower, center_frills, bonnet, holding_bouquet, floral background, flower field, multicolored background, colorful, petals, depth of field, flower field"
+positive_prompt = "(((masterpiece))),(((bestquality))),((ultra-detailed)),(illustration),((anextremelydelicateandbeautiful)),dynamicangle,floating,(beautifuldetailedeyes),(detailedlight) (1girl), solo, floating_hair,glowingeyes,green hair,greeneyes, twintails, halterdress, <lora:atdanStyleLora_lk:0.6>, atdan, green background"
 #positive_prompt = "(((masterpiece))),(((bestquality))),1girl, ponytail, white hair, purple eyes, t-shirt, skirt,white thighhighs, flower, petals, light smile,medium breasts, collarbone, depth of field, petals, (illustration:1.1), landscape, background, abstract, mountainous horizon, cloud, sun,"
 #positive_prompt = "1girl, renaissance art stylized by Pieter Aertsen, Nurturing, from inside a Bayou, autumn cityscape and Binary star in background, Fall, Anime screencap, Confused, Dramatic spotlight, 800mm lens, surreal design, emotional, surrealism"
 #positive_prompt = "1girl, (designed by Junji Ito:0.7) and Moyoco Anno, hip level shot of a Burning , at Sunset, Masterpiece, Depressing, Ambient lighting, Saturated, 'I'm a barbie girl, in a barbie world.', trending on CGSociety, sad"
-positive_prompt = "1girl, colorful art stylized by Jim Dine and Maynard Dixon, black platform_footwear, pop art, attractive, landscape of a (The Land of Oz:1.2) , Dramatic, crowded lake, Stars in the sky, Ultra Real, Metalcore, 800mm lens, white stockings, CivChan, purple eyes, pink hair"
+#positive_prompt = "masterpiece, best quality, 1girl, hyouka, chitanda eru, colorful art stylized by Jim Dine and Maynard Dixon, black platform_footwear, pop art, attractive, landscape of a (The Land of Oz:1.2) , Dramatic, crowded lake, Stars in the sky, Ultra Real, Metalcore, 800mm lens"
 #positive_prompt = "masterpiece,best quality,Mechanical prosthetics,cyberpunk,science and technology,human reconstruction,advanced,mechanical promotion,bone remodeling,{body reconstruction},white cathedral (very clean and bright) - many transparent glass windows,white long hair,white stockings,white gloves,messy hair,hair flowing in the wind,high details,extremely delicate and beautiful girl,{{feathers}},small chest,glittering,Solo,white dove,beautiful detail sky,beautiful detail eyes,skirt - gem necklace - gem pendant,bare shoulder,room full of blue crystals (very much),upper body,<lora:animetarotV51:1>,"
 
 # positive_prompt = """
