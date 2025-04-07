@@ -6,8 +6,8 @@ from diffusers import UniPCMultistepScheduler,DPMSolverSDEScheduler
 
 class Settings:
     #API基本資料設定
-    PROJECT_NAME_zh_TW: str = "隨機塔羅"
-    PROJECT_NAME_EN_US: str = "Random Tarot"
+    PROJECT_NAME_zh_TW: str = "隨機塔羅生成器"
+    PROJECT_NAME_EN_US: str = "Random Tarot Generator"
     VERSION: str = "1.0.0"
 
     #router設定
