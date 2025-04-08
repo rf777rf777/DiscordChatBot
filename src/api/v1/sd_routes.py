@@ -15,17 +15,19 @@ router = APIRouter(prefix=f'/{settings.ROUTER_NAME_SDImage}',
 async def use_stable_diffusion(
     model_name: str = Query(description='模型名稱', default = 'qchanAnimeMix_v40'),
     vae_name: str = Query(description='VAE名稱', default = ''),
+    prompt: str = Query(description='提示詞', default = 'masterpiece, best quality, 1girl'),
     sampler: str = Query(description='取樣器名稱', default = 'euler_a'),
     seed: int = Query(description='隨機種子', default = None),
-    steps: int = Query(description='取樣步驟', default = 40),
-    prompt: str = Query(description='提示詞', default = 'masterpiece, best quality, 1girl')):    
-        
+    steps: int = Query(description='取樣步驟', default = 40)):    
+
     # 使用 create_sd_image 函數生成圖片
     img_byte_arr = await create_sd_image(
         mode_name = model_name,
         vae_name = vae_name,
         prompt = prompt,
-        sampler_name = sampler
+        sampler_name = sampler,
+        seed = seed,
+        steps = steps
     )    
 
     

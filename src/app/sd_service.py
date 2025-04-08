@@ -14,18 +14,21 @@ async def create_sd_image(mode_name,
                     vae_name,
                     prompt,
                     sampler_name="euler_a",
+                    seed=None,
+                    steps=40,
                     torch_dtype = torch.float32, 
+                    # 禁用 safety checker
                     safety_checker=None):
     await asyncio.sleep(0.2)
 
     pipe = StableDiffusionPipeline.from_pretrained(
         f'src/Models/SD/BaseModels/{mode_name}',
         torch_dtype=torch_dtype,
-        safety_checker=safety_checker).to("mps")  # 禁用 safety checker
+        safety_checker=safety_checker).to("mps")
     
     if vae_name:
         pipe.vae = AutoencoderKL.from_pretrained(f'src/Models/SD/VAE/{vae_name}', 
-                                                 torch_dtype=torch.float32).to("mps")
+                                                 torch_dtype=torch_dtype).to("mps")
 
     sampler_factory = _get_scheduler_factory(sampler_name)
     pipe.scheduler = sampler_factory(pipe.scheduler.config)
@@ -41,23 +44,26 @@ async def create_sd_image(mode_name,
 
     pipe.enable_attention_slicing()
     
-    lora_weights = { "animetarotV51": 0.8 , "hyouka_offset": 0.2}
+    lora_weights = { "animetarotV51": 0.9 
+                    # ,"hyouka_offset": 0.2
+                    }
     pipe.load_lora_weights("src/Models/SD/Loras/animetarotV51.safetensors", 
                             adapter_name="animetarotV51")
     
-    pipe.load_lora_weights("src/Models/SD/Loras/hyouka_offset.safetensors",
-                         adapter_name="hyouka_offset")
+    # pipe.load_lora_weights("src/Models/SD/Loras/hyouka_offset.safetensors",
+    #                      adapter_name="hyouka_offset")
 
     pipe.set_adapters(list(lora_weights.keys()), list(lora_weights.values()))
     
-    seed =  random.randint(0, 2**32 - 1)
+    if not seed:
+        seed =  random.randint(0, 2**32 - 1)
     
     #要產生的圖片數量
     num_images = 1
     #設定隨機種子
     generator = [torch.manual_seed(seed + i) for i in range(num_images)]
     guidance_scale = 7
-    steps = 20 #40
+    steps = steps #40
     width = 576
     height = 1024
 

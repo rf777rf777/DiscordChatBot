@@ -1,6 +1,4 @@
 from diffusers.pipelines.stable_diffusion.convert_from_ckpt import create_vae_diffusers_config, convert_ldm_unet_checkpoint, convert_ldm_vae_checkpoint, convert_ldm_clip_checkpoint, download_from_original_stable_diffusion_ckpt
-import torch
-
 from transformers import CLIPTextConfig, CLIPTextModel, CLIPTokenizer
 from diffusers.models import AutoencoderKL
 import torch
@@ -12,13 +10,14 @@ yaml_path = "src/AI/v1-inference.yaml"
 for root, dirs, files in os.walk(root_dir):
     for file in files:
         full_path = os.path.join(root, file)
-        filename = full_path.split("/")[-1].split('.')[0]
+        save_folder_name = file.split('.')[0]
+        save_folder_path = f'src/Models/SD/BaseModels/{save_folder_name}'
         pipeline = download_from_original_stable_diffusion_ckpt(
             checkpoint_path_or_dict=full_path,
             original_config_file=yaml_path,  # 配套的 yaml
             from_safetensors=True
         )
-        pipeline.save_pretrained(f"src/Models/{filename}")
+        pipeline.save_pretrained(save_folder_path)
   
 # pipeline = download_from_original_stable_diffusion_ckpt(
 #     checkpoint_path_or_dict="DiscordChatBot/src/Models/malkmilfmix_v20.safetensors",
