@@ -34,9 +34,11 @@ async def create_sd_image(mode_name,
     pipe.scheduler = sampler_factory(pipe.scheduler.config)
 
     embedding_dirs = [
-        ("src/Models/SD/Embeddings/easynegative.safetensors", "easynegative"),
+        #("src/Models/SD/Embeddings/easynegative.safetensors", "easynegative"),
         ("src/Models/SD/Embeddings/badhandv4.pt", "badhandv4"),
-        ("src/Models/SD/Embeddings/HDA_Ahegao.pt", "HDA_Ahegao")
+        ("src/Models/SD/Embeddings/HDA_Ahegao.pt", "HDA_Ahegao"),
+        ("src/Models/SD/Embeddings/FastNegativeV2.pt", "FastNegativeV2"),
+        #("src/Models/SD/Embeddings/bad-hands-5.pt", "bad-hands-5"),
     ]
     
     for path, trigger_word in embedding_dirs:
@@ -44,12 +46,13 @@ async def create_sd_image(mode_name,
 
     pipe.enable_attention_slicing()
     
-    lora_weights = { "animetarotV51": 0.9 
-                    # ,"hyouka_offset": 0.2
+    lora_weights = { "animetarotV51": 0.9,
+                    #   "beautifulDetailedEyes": 0.5
                     }
     pipe.load_lora_weights("src/Models/SD/Loras/animetarotV51.safetensors", 
                             adapter_name="animetarotV51")
-    
+    # pipe.load_lora_weights("src/Models/SD/Loras/beautifulDetailedEyes.safetensors", 
+    #                         adapter_name="beautifulDetailedEyes")
     # pipe.load_lora_weights("src/Models/SD/Loras/hyouka_offset.safetensors",
     #                      adapter_name="hyouka_offset")
 
@@ -67,12 +70,21 @@ async def create_sd_image(mode_name,
     width = 576
     height = 1024
 
+    prompt_items = prompt.split(",")
+    filtered_items = [x.strip() for x in prompt_items if x.strip() not in ["1girl", "masterpiece", "best quality"]]
+    filtered_prompt = ""
+    if len(filtered_items) > 0:
+        filtered_prompt = f"{','.join(filtered_items)},"
+    prompt = f"1girl,masterpiece, best quality,{filtered_prompt}8k, highres"
+    
     imageList = []
     for i in range(1):
-        generator = torch.manual_seed(seed + i)
+        target_seed = seed + i 
+        print(f"Seed: {target_seed}")
+        generator = torch.manual_seed(target_seed)
         image = pipe(
             prompt=prompt,
-            negative_prompt= "easynegative, badhandv4, watermark",
+            negative_prompt= "FastNegativeV2, badhandv4", #"easynegative, badhandv4, watermark",
             num_inference_steps=steps,
             guidance_scale=guidance_scale,
             generator=generator,
