@@ -18,8 +18,8 @@ async def use_stable_diffusion(
     prompt: str = Query(description='提示詞', default = 'masterpiece, best quality, 1girl'),
     sampler: str = Query(description='取樣器名稱', default = 'euler_a'),
     seed: int = Query(description='隨機種子', default = None),
-    steps: int = Query(description='取樣步驟', default = 40)):    
-
+    steps: int = Query(description='取樣步驟', default = 40)): 
+    
     # 使用 create_sd_image 函數生成圖片
     img_byte_arr = await create_sd_image(
         mode_name = model_name,

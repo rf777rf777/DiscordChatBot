@@ -6,7 +6,6 @@ from diffusers import StableDiffusionPipeline, AutoencoderKL
 
 import torch
 import gc
-
 # model_dir = "src/Models/SD/BaseModels/qchanAnimeMix_v40" 
 # vae_path = ""
 
@@ -34,10 +33,10 @@ async def create_sd_image(mode_name,
     pipe.scheduler = sampler_factory(pipe.scheduler.config)
 
     embedding_dirs = [
-        #("src/Models/SD/Embeddings/easynegative.safetensors", "easynegative"),
+        ("src/Models/SD/Embeddings/easynegative.safetensors", "easynegative"),
         ("src/Models/SD/Embeddings/badhandv4.pt", "badhandv4"),
         ("src/Models/SD/Embeddings/HDA_Ahegao.pt", "HDA_Ahegao"),
-        ("src/Models/SD/Embeddings/FastNegativeV2.pt", "FastNegativeV2"),
+        #("src/Models/SD/Embeddings/FastNegativeV2.pt", "FastNegativeV2"),
         #("src/Models/SD/Embeddings/bad-hands-5.pt", "bad-hands-5"),
     ]
     
@@ -46,7 +45,7 @@ async def create_sd_image(mode_name,
 
     pipe.enable_attention_slicing()
     
-    lora_weights = { "animetarotV51": 0.9,
+    lora_weights = { "animetarotV51": 1,
                     #   "beautifulDetailedEyes": 0.5
                     }
     pipe.load_lora_weights("src/Models/SD/Loras/animetarotV51.safetensors", 
@@ -61,10 +60,10 @@ async def create_sd_image(mode_name,
     if not seed:
         seed =  random.randint(0, 2**32 - 1)
     
-    #要產生的圖片數量
+    #一次要產生的圖片數量
     num_images = 1
     #設定隨機種子
-    generator = [torch.manual_seed(seed + i) for i in range(num_images)]
+    #generator = [torch.manual_seed(seed + i) for i in range(num_images)]
     guidance_scale = 7
     steps = steps #40
     width = 576
@@ -75,16 +74,17 @@ async def create_sd_image(mode_name,
     filtered_prompt = ""
     if len(filtered_items) > 0:
         filtered_prompt = f"{','.join(filtered_items)},"
-    prompt = f"1girl,masterpiece, best quality,{filtered_prompt}8k, highres"
+    prompt = f"1girl,masterpiece,best quality,animetarotV51,{filtered_prompt}8k,highres"
     
     imageList = []
     for i in range(1):
         target_seed = seed + i 
         print(f"Seed: {target_seed}")
-        generator = torch.manual_seed(target_seed)
+        generator = [torch.manual_seed(seed + i) for i in range(num_images)]
+        # generator = torch.manual_seed(target_seed)
         image = pipe(
             prompt=prompt,
-            negative_prompt= "FastNegativeV2, badhandv4", #"easynegative, badhandv4, watermark",
+            negative_prompt= "easynegative,badhandv4,watermark", #"FastNegativeV2, badhandv4, watermark",
             num_inference_steps=steps,
             guidance_scale=guidance_scale,
             generator=generator,
