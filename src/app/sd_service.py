@@ -1,11 +1,16 @@
 import os, io, asyncio
 os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"
+from datetime import datetime
 import random
 from core.config import settings
 from diffusers import StableDiffusionPipeline, AutoencoderKL
-
+from diffusers import StableDiffusionControlNetImg2ImgPipeline
+from diffusers import ControlNetModel, DPMSolverMultistepScheduler
 import torch
 import gc
+import cv2
+import numpy as np
+from PIL import Image
 # model_dir = "src/Models/SD/BaseModels/qchanAnimeMix_v40" 
 # vae_path = ""
 
@@ -103,6 +108,79 @@ async def create_sd_image(mode_name,
     
     return img_byte_arr
 
+async def image_to_image(file, mode_name, 
+                    vae_name,
+                    prompt,
+                    sampler_name="euler_a",
+                    seed=None,
+                    steps=40,
+                    torch_dtype = torch.float32, 
+                    # 禁用 safety checker
+                    safety_checker=None):
+    contents = await file.read()
+    original_image = Image.open(io.BytesIO(contents)).convert("RGB")    
+    resized_image = get_resized_image(original_image, True)
+    resized_image_RGB = resized_image.convert("RGB")
+    #init_image_name = info[0]
+    control_image = get_canny_img(resized_image_RGB)
+    control_image = get_resized_image(control_image)
+
+    controlnet = ControlNetModel.from_pretrained(
+        "lllyasviel/sd-controlnet-canny", torch_dtype=torch_dtype
+    )
+    
+    # --- 建立 ControlNet + img2img 管線 ---
+    pipe = StableDiffusionControlNetImg2ImgPipeline .from_pretrained(
+        # "runwayml/stable-diffusion-v1-5",
+        f'src/Models/SD/BaseModels/{mode_name}',
+        controlnet=controlnet,
+        torch_dtype=torch_dtype,
+        safety_checker=None
+    )
+    
+    if vae_name:
+        pipe.vae = AutoencoderKL.from_pretrained(f'src/Models/SD/VAE/{vae_name}', 
+                                                 torch_dtype=torch_dtype).to("mps")
+
+    pipe = pipe.to("mps")  # 或 "mps" 根據你的設備
+    pipe.enable_attention_slicing()
+    pipe.load_textual_inversion("src/Models/SD/Embeddings/easynegative.safetensors", token="easynegative", mean_resizing=False)
+    pipe.load_textual_inversion("src/Models/SD/Embeddings/badhandv4.pt", token="badhandv4", mean_resizing=False)
+
+    sampler_factory = _get_scheduler_factory(sampler_name)
+    pipe.scheduler = sampler_factory(pipe.scheduler.config)
+
+    negative_prompt = "easynegative, badhandv4"
+    prompt = "(((masterpiece))),(((bestquality))),1girl"
+    #seed = 2245550560
+    seed =  random.randint(0, 2**32 - 1)
+    guidance_scale = 7
+    generator = torch.manual_seed(seed)
+    original_image = get_resized_image(original_image)
+    # --- 生成圖片 ---
+    # 注意這裡除了原圖 (image) 參數外，多了一個 control_image 參數
+    result = pipe(
+        prompt=prompt,
+        negative_prompt=negative_prompt,
+        image=get_resized_image(original_image),
+        control_image=control_image,
+        strength=0.5,         # 調整風格轉換程度，建議保留原圖結構可調低
+        guidance_scale=guidance_scale,
+        num_inference_steps=steps,
+        generator=generator
+    ).images[0]
+    
+    torch.mps.empty_cache()
+    gc.collect()
+        
+    # 儲存影像至記憶體(bytes)
+    img_byte_arr = io.BytesIO()
+    result.save(img_byte_arr, format='PNG')
+    img_byte_arr.seek(0)
+    
+    return img_byte_arr
+    
+    
 def _get_scheduler_factory(sampler_name: str):
     sampler_name = sampler_name.lower()
     sampler_info = settings.SD_SAMPLERS.get(sampler_name)
@@ -117,3 +195,46 @@ def _get_scheduler_factory(sampler_name: str):
     extra_kwargs = sampler_info.get("kwargs", {})
 
     return lambda config: SchedulerCls.from_config(config, **extra_kwargs)
+
+def get_canny_img(input_image):
+    # --- 利用 OpenCV 生成 Canny 邊緣圖 ---
+    # 轉換成 numpy 陣列，並轉成灰階
+    np_image = np.array(input_image)
+    gray = cv2.cvtColor(np_image, cv2.COLOR_RGB2GRAY)
+    # 使用 Canny 偵測邊緣，這裡參數可依需求調整
+    edges = cv2.Canny(gray, threshold1=120, threshold2=250)
+    # 將邊緣圖轉回 RGB PIL Image
+    control_image = Image.fromarray(cv2.cvtColor(edges, cv2.COLOR_GRAY2RGB))
+
+    nowtime = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    control_image.save(f"temp_{nowtime}.jpg")
+    return control_image
+
+def get_resized_image(img, bigger:bool=False, smaller:bool=False) -> Image.Image:
+    img = img
+    w, h = img.size
+    if bigger:
+        resized_img = img.resize((w*2,h*2), Image.BICUBIC)
+        return resized_img
+    if smaller:
+        resized_img = img.resize((w//2,h//2), Image.LANCZOS)
+        return resized_img
+    # --- 計算新的大小 ---
+    if w == h:
+        new_size = (512, 512)
+    elif w > h:
+        new_w = 768
+        new_h = int(h * (768 / w))
+        new_size = (new_w, new_h)
+    else:
+        new_h = 768
+        new_w = int(w * (768 / h))
+        if new_w > 512:
+            new_w = 512
+        new_size = (new_w, new_h)
+    
+    # BICUBIC適合放大圖像
+    # LANCZOS適合縮小圖像
+    resized_img = img.resize(new_size, Image.LANCZOS)
+
+    return resized_img
